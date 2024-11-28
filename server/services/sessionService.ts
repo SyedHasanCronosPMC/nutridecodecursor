@@ -1,4 +1,4 @@
-import { pool } from '../config/database.js';
+import pool from '../config/database.js';
 import { Session } from '../types/auth.js';
 import { AuthError } from '../utils/errors.js';
 
@@ -41,6 +41,13 @@ export class SessionService {
       `DELETE FROM sessions 
        WHERE expires_at < NOW() 
        OR is_valid = false`
+    );
+  }
+
+  static async invalidateAllUserSessions(userId: string): Promise<void> {
+    await pool.query(
+      'UPDATE sessions SET is_valid = false WHERE user_id = $1',
+      [userId]
     );
   }
 }

@@ -1,22 +1,42 @@
 import { Request, Response, NextFunction } from 'express';
-import { handleError } from '../utils/errors.js';
+import { AuthError, ValidationError } from '../utils/errors.js';
+import { ZodError } from 'zod';
 
 export const errorHandler = (
-  err: Error,
-  _req: Request,
+  error: Error,
+  req: Request,
   res: Response,
-  _next: NextFunction
+  next: NextFunction
 ) => {
-  handleError(err, res);
+  console.error('Error:', error);
+
+  if (error instanceof AuthError) {
+    return res.status(401).json({
+      error: error.message,
+      code: error.code,
+    });
+  }
+
+  if (error instanceof ValidationError) {
+    return res.status(400).json({
+      error: error.message,
+      code: error.code,
+    });
+  }
+
+  if (error instanceof ZodError) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: error.errors,
+    });
+  }
+
+  res.status(500).json({
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+  });
 };
 
-export const notFoundHandler = (
-  _req: Request,
-  res: Response,
-  _next: NextFunction
-) => {
-  res.status(404).json({
-    error: 'Resource not found',
-    code: 'NOT_FOUND',
-  });
+export const notFoundHandler = (req: Request, res: Response) => {
+  res.status(404).json({ error: 'Not found' });
 };

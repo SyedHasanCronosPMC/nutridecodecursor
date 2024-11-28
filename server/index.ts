@@ -1,11 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { pool } from './config/database.js';
+import pool from './config/database.js';
 import authRouter from './routes/auth.js';
 import protectedRouter from './routes/protected.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { initDatabase } from './config/database/init.js';
+import { configureSecurity } from './middleware/security.js';
+import { authLimiter, apiLimiter } from './middleware/rateLimiter.js';
+import { SessionService } from './services/sessionService.js';
+import { corsOptions } from './config/cors.js';
 
 // Load environment variables
 dotenv.config();
@@ -15,12 +19,14 @@ const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors(corsOptions));
+
+// Security middleware
+configureSecurity(app);
+
+// Rate limiting
+app.use('/api/auth', authLimiter);
+app.use('/api', apiLimiter);
 
 // Health check endpoint
 app.get('/health', async (_req, res) => {
@@ -57,11 +63,43 @@ app.use(errorHandler);
 async function startServer() {
   try {
     await initDatabase();
-    app.listen(port, () => {
-      console.log(`🚀 Server running at http://localhost:${port}`);
-      console.log(`👋 Health check available at http://localhost:${port}/health`);
-      console.log(`🌐 Accepting requests from: ${process.env.FRONTEND_URL}`);
-    });
+    
+    // Try to start server with retries on different ports
+    let currentPort = parseInt(port.toString());
+    const maxRetries = 3;
+    let started = false;
+
+    for (let i = 0; i < maxRetries && !started; i++) {
+      try {
+        await new Promise((resolve, reject) => {
+          const server = app.listen(currentPort, () => {
+            console.log(`🚀 Server running at http://localhost:${currentPort}`);
+            console.log(`👋 Health check available at http://localhost:${currentPort}/health`);
+            console.log(`🌐 Accepting requests from: ${process.env.FRONTEND_URL}`);
+            started = true;
+            resolve(true);
+          });
+
+          server.on('error', (error: NodeJS.ErrnoException) => {
+            if (error.code === 'EADDRINUSE') {
+              console.log(`⚠️ Port ${currentPort} is in use, trying ${currentPort + 1}...`);
+              currentPort++;
+              server.close();
+              resolve(false);
+            } else {
+              reject(error);
+            }
+          });
+        });
+      } catch (error) {
+        console.error('Failed to start server:', error);
+        currentPort++;
+      }
+    }
+
+    if (!started) {
+      throw new Error(`Could not find an available port after ${maxRetries} attempts`);
+    }
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
@@ -83,3 +121,9 @@ process.on('SIGINT', async () => {
   await pool.end();
   process.exit(0);
 });
+
+// Add session cleanup job
+setInterval(() => {
+  SessionService.cleanupExpiredSessions()
+    .catch(error => console.error('Failed to cleanup sessions:', error));
+}, 24 * 60 * 60 * 1000); // Run daily

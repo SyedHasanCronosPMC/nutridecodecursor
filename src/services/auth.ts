@@ -1,26 +1,9 @@
-import { LoginCredentials, RegisterCredentials } from '../types/auth';
+import { LoginCredentials, AuthResponse } from '../types/auth';
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-export async function loginWithGoogleToken(credential: string) {
-  const response = await fetch(`${API_URL}/api/auth/google`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ credential }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Google authentication failed');
-  }
-
-  return response.json();
-}
-
-export async function loginWithCredentials(credentials: LoginCredentials) {
-  const response = await fetch(`${API_URL}/api/auth/login`, {
+export const loginWithCredentials = async (credentials: LoginCredentials): Promise<AuthResponse> => {
+  const response = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -34,10 +17,31 @@ export async function loginWithCredentials(credentials: LoginCredentials) {
   }
 
   return response.json();
-}
+};
 
-export async function register(data: RegisterCredentials) {
-  const response = await fetch(`${API_URL}/api/auth/register`, {
+export const loginWithGoogleToken = async (credential: string): Promise<AuthResponse> => {
+  const response = await fetch(`${API_URL}/auth/google`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ credential }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Google login failed');
+  }
+
+  return response.json();
+};
+
+export const register = async (data: {
+  email: string;
+  password: string;
+  name: string;
+}): Promise<AuthResponse> => {
+  const response = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -51,10 +55,10 @@ export async function register(data: RegisterCredentials) {
   }
 
   return response.json();
-}
+};
 
-export async function resetPassword(email: string) {
-  const response = await fetch(`${API_URL}/api/auth/reset-password`, {
+export const resetPassword = async (email: string): Promise<void> => {
+  const response = await fetch(`${API_URL}/auth/reset-password`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -64,8 +68,6 @@ export async function resetPassword(email: string) {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || 'Password reset request failed');
+    throw new Error(error.message || 'Password reset failed');
   }
-
-  return response.json();
-}
+};

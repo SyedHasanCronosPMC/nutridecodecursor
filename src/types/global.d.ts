@@ -1,6 +1,7 @@
 interface Window {
   google: {
     accounts: {
+      id: any;
       oauth2: {
         initTokenClient: (config: {
           client_id: string;

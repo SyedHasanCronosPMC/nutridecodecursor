@@ -1,4 +1,4 @@
-import { pool } from '../config/database.js';
+import pool from '../config/database.js';
 import { User, UserCreate } from '../types/user.js';
 
 export class UserService {

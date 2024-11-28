@@ -6,10 +6,25 @@ import SignUpForm from './auth/SignUpForm';
 import ForgotPasswordForm from './auth/ForgotPasswordForm';
 import Divider from './auth/Divider';
 import Header from './auth/Header';
+import { useAuth } from '../context/AuthContext';
+import type { CredentialResponse } from '../types/google-one-tap';
 
 export default function LoginForm() {
   const { hash } = useLocation();
+  const { loginWithGoogle } = useAuth();
   
+  const handleGoogleSuccess = async (response: CredentialResponse) => {
+    try {
+      await loginWithGoogle(response.credential);
+    } catch (error) {
+      console.error('Google login failed:', error);
+    }
+  };
+
+  const handleGoogleError = (error: Error) => {
+    console.error('Google button error:', error);
+  };
+
   const renderForm = () => {
     switch (hash) {
       case '#signup':
@@ -19,7 +34,10 @@ export default function LoginForm() {
       default:
         return (
           <>
-            <GoogleButton />
+            <GoogleButton 
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+            />
             <Divider />
             <EmailForm />
           </>

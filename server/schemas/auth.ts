@@ -31,6 +31,19 @@ export const authSchemas = {
       remember: z.boolean().optional(),
     }),
   }),
+
+  resetPassword: z.object({
+    body: z.object({
+      email: z.string().email('Invalid email address'),
+    }),
+  }),
+
+  updatePassword: z.object({
+    body: z.object({
+      token: z.string().min(1, 'Reset token is required'),
+      password: passwordSchema,
+    }),
+  }),
 };
 
 export type GoogleAuthRequest = z.infer<typeof authSchemas.google>['body'];

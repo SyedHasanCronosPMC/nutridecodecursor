@@ -1,4 +1,4 @@
-import { pool } from '../database.js';
+import pool from '../database.js';
 
 export async function initDatabase() {
   const client = await pool.connect();
@@ -37,6 +37,18 @@ export async function initDatabase() {
         ip_address TEXT,
         user_agent TEXT,
         is_valid BOOLEAN DEFAULT TRUE
+      )
+    `);
+    
+    // Add this inside the initDatabase function
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        token TEXT NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        used BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       )
     `);
     

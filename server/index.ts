@@ -6,7 +6,7 @@ import authRouter from './routes/auth.js';
 import protectedRouter from './routes/protected.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { initDatabase } from './config/database/init.js';
-import { configureSecurity } from './middleware/security.js';
+import { configureSecurityMiddleware } from './middleware/security.js';
 import { authLimiter, apiLimiter } from './middleware/rateLimiter.js';
 import { SessionService } from './services/sessionService.js';
 import { corsOptions } from './config/cors.js';
@@ -17,19 +17,26 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
-app.use(express.json());
+// Add these console logs for debugging first
+console.log('Frontend URL:', process.env.FRONTEND_URL);
+console.log('Google Client ID:', process.env.GOOGLE_CLIENT_ID);
+
+// Middleware order is important!
+// 1. CORS should be first
 app.use(cors(corsOptions));
 
-// Security middleware
-configureSecurity(app);
+// 2. Then body parser
+app.use(express.json());
 
-// Rate limiting
+// 3. Security middleware
+configureSecurityMiddleware(app);
+
+// 4. Rate limiting
 app.use('/api/auth', authLimiter);
 app.use('/api', apiLimiter);
 
 // Health check endpoint
-app.get('/health', async (_req, res) => {
+app.get('/api/health', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
     res.json({ 
@@ -127,3 +134,8 @@ setInterval(() => {
   SessionService.cleanupExpiredSessions()
     .catch(error => console.error('Failed to cleanup sessions:', error));
 }, 24 * 60 * 60 * 1000); // Run daily
+
+// Add a test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working' });
+});

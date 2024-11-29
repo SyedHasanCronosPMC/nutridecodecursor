@@ -1,8 +1,8 @@
-import { User, UserProfile } from './user.js';
+import { User } from './user';
 
 export interface AuthResponse {
   token: string;
-  user: UserProfile;
+  user: User;
 }
 
 export interface LoginRequest {
@@ -28,4 +28,9 @@ export interface Session {
   ip_address?: string;
   user_agent?: string;
   is_valid: boolean;
+}
+
+export interface TokenPayload {
+  userId: string;
+  exp?: number;
 }

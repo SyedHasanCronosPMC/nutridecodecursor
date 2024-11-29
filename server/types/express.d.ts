@@ -1,8 +1,11 @@
-declare namespace Express {
-  export interface Request {
-    user?: {
-      userId: string;
-      [key: string]: any;
-    };
+import { TokenPayload } from './auth';
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: TokenPayload;
+    }
   }
 }
+
+export {};

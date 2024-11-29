@@ -8,7 +8,14 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  console.error('Error:', error);
+  console.error('Error details:', {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+    url: req.url,
+    method: req.method,
+    headers: req.headers,
+  });
 
   if (error instanceof AuthError) {
     return res.status(401).json({
